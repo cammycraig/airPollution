@@ -11,3 +11,7 @@ When ran, the file measures an average level of PM2.5 and PM10 in the air over a
 ```python
 Future: add <matter.py>
 ```
+
+## Set Up Individual Sensor with Server Host
+
+## Set Up Node Network of Sensors with Server Host
