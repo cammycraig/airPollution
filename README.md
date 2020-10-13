@@ -1,7 +1,7 @@
 # Air Particulate Sensor Code
 Open sourced software for monitoring PM2.5 and PM10 Air Particulate
 
-![Image of Sensor](https://craigrc.github.com/Images/Air-Sensor-Image.png)
+![Image of Sensor](https://craigrc.github.com/Images/Air-Sensor-Image.PNG)
 
 ## Read Air Particulate Values with Code
 
