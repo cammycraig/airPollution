@@ -10,17 +10,224 @@ This project allows anyone to use an SDS011 air particulate sensor to monitor le
 `matter.py`
 
 airPolution/matter.py contains the code for monitoring air particulate values.
-When ran, the file measures an average level of PM2.5 and PM10 in the air over a minute, in 15 minute intervals (1 on, 14 off) and writes these values to a **data.txt** file in the same directory.
+When ran, the file measures an average level of PM2.5 and PM10 in the air over a minute, in 15 minute intervals (1 on, 14 off) and writes these values to a **data.txt** file in the same directory. This code very heavily uses Github User [Zenfanja's](https://github.com/zefanja/) aqi.py as a base for the sensor code, and so all the credit goes to them for this!
 
 ```python
-Future: add <matter.py>
+from __future__ import print_function
+import serial, struct, sys, time, json, subprocess
+
+DEBUG = 0
+CMD_MODE = 2
+CMD_QUERY_DATA = 4
+CMD_DEVICE_ID = 5
+CMD_SLEEP = 6
+CMD_FIRMWARE = 7
+CMD_WORKING_PERIOD = 8
+MODE_ACTIVE = 0
+MODE_QUERY = 1
+PERIOD_CONTINUOUS = 0
+
+JSON_FILE = '/var/www/html/aqi.json'
+
+MQTT_HOST = ''
+MQTT_TOPIC = '/weather/particulatematter'
+
+ser = serial.Serial()
+ser.port = "/dev/ttyUSB0"
+ser.baudrate = 9600
+
+ser.open()
+ser.flushInput()
+
+byte, data = 0, ""
+
+
+def dump(d, prefix=''):
+    print(prefix + ' '.join(x.encode('hex') for x in d))
+
+
+def construct_command(cmd, data=[]):
+    assert len(data) <= 12
+    data += [0, ] * (12 - len(data))
+    checksum = (sum(data) + cmd - 2) % 256
+    ret = "\xaa\xb4" + chr(cmd)
+    ret += ''.join(chr(x) for x in data)
+    ret += "\xff\xff" + chr(checksum) + "\xab"
+
+    if DEBUG:
+        dump(ret, '> ')
+    return ret
+
+
+def process_data(d):
+    r = struct.unpack('<HHxxBB', d[2:])
+    pm25 = r[0] / 10.0
+    pm10 = r[1] / 10.0
+    checksum = sum(ord(v) for v in d[2:8]) % 256
+    return [pm25, pm10]
+
+def process_version(d):
+    r = struct.unpack('<BBBHBB', d[3:])
+    checksum = sum(ord(v) for v in d[2:8]) % 256
+    print("Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]),
+                                                       "OK" if (checksum == r[4] and r[5] == 0xab) else "NOK"))
+
+
+def read_response():
+    byte = 0
+    while byte != "\xaa":
+        byte = ser.read(size=1)
+
+    d = ser.read(size=9)
+
+    if DEBUG:
+        dump(d, '< ')
+    return byte + d
+
+
+def cmd_set_mode(mode=MODE_QUERY):
+    ser.write(construct_command(CMD_MODE, [0x1, mode]))
+    read_response()
+
+
+def cmd_query_data():
+    ser.write(construct_command(CMD_QUERY_DATA))
+    d = read_response()
+    values = []
+    if d[1] == "\xc0":
+        values = process_data(d)
+    return values
+
+
+def cmd_set_sleep(sleep):
+    mode = 0 if sleep else 1
+    ser.write(construct_command(CMD_SLEEP, [0x1, mode]))
+    read_response()
+
+
+def cmd_set_working_period(period):
+    ser.write(construct_command(CMD_WORKING_PERIOD, [0x1, period]))
+    read_response()
+
+
+def cmd_firmware_ver():
+    ser.write(construct_command(CMD_FIRMWARE))
+    d = read_response()
+    process_version(d)
+
+
+def cmd_set_id(id):
+    id_h = (id >> 8) % 256
+    id_l = id % 256
+    ser.write(construct_command(CMD_DEVICE_ID, [0] * 10 + [id_l, id_h]))
+    read_response()
+
+
+def pub_mqtt(jsonrow):
+    cmd = ['mosquitto_pub', '-h', MQTT_HOST, '-t', MQTT_TOPIC, '-s']
+    print('Publishing using:', cmd)
+    with subprocess.Popen(cmd, shell=False, bufsize=0, stdin=subprocess.PIPE).stdin as f:
+        json.dump(jsonrow, f)
+
+
+if __name__ == "__main__":
+    cmd_set_sleep(0)
+    cmd_firmware_ver()
+    cmd_set_working_period(PERIOD_CONTINUOUS)
+    cmd_set_mode(MODE_QUERY);
+    while True:
+        cmd_set_sleep(0)
+        pm2T = 0
+        pm10T = 0
+        for t in range(30):
+            values = cmd_query_data();
+            if values is not None and len(values) == 2:
+                print("PM2.5: ", values[0], ", PM10: ", values[1])
+                pm2T += values[0]
+                pm10T += values[1]
+                time.sleep(2)
+        pm2TAvg = pm2T / 30
+        pm10TAvg = pm10T / 30
+        dtime = time.strftime("%d.%m.%Y %H:%M")
+        content = "\n" + str(dtime) + ", " + str(round(pm2TAvg,2)) + ", " + str(round(pm10TAvg,2))
+        datafile = open("./data.txt", "a")
+        datafile.write(content)
+        datafile.close()
+
+        cmd_set_sleep(14)
+        time.sleep((60*14))
+
 ```
 
 ## Set Up Individual Sensor with Server Host
 
 ### Method 1: Create System with Image (Recommended Option)
 
-### Method 2: Create System from Terminal
+### Method 2: Create System from Scratch
+
+## Set Up Coupled Node and Server
+
+### Method 1: Create System with Image (Recommended Option)
+
+### Method 2: Create System from Scratch
+
+On the Sensor Pi:
+
+- Set up a fresh boot of raspbian with desktop
+
+- Connect the pi to your internet
+
+- In the console, type 'sudo raspi-config'
+
+  - Here, enable SSH
+  
+  - <<AND DESKTOP AUTO-LOGIN?>>
+ 
+- Run 'ifconfig' to find the IP address of this Pi (make sure to make a note of this for later!)
+
+- Run 'sudo apt install git-core python-serial python-enum'
+
+- Install the matter.py file onto /home/pi
+
+- Create a data.txt file using 'sudo nano data.txt'
+
+  - In this file, type:
+
+`dateTime, PM2.5, PM10`
+
+  - then save the file.
+  
+- Next, we are going to automate running this file on startup:
+
+  - <AUTOMATE>
+
+On the Server Pi:
+
+- <SETUP PYTHON BASED WEB SERVER>
+  
+- Connect the pi to your wifi
+
+- Enable SSH on this pi too.
+
+- Run 'ifconfig' and make a note of the server pi IP.
+
+- Create an SSH key pair between the two Pis. A more detailed guide on doing this can be seen [here](https://debian-administration.org/article/530/SSH_with_authentication_key_instead_of_password).
+
+  - Run 'ssh-keygen' and leave all fields default. 
+
+  - Run 'ssh-copy-id -i .ssh/id_rsa.pub pi@<YOUR NODE PI IP>'
+  
+- Install the server files
+
+  - Install all the files from airPollution/cgi-bin into /var/www/cgi-bin
+  
+  - In the command line, navigate to /var/www and run 'sudo chmod -R 777 ./cgi-bin/
+  
+  - Edit the new index.py file and replace both the <NODE PI IP> references to the IP address of the Node Pi you set up.
+
+Finally, reboot the node pi.
+
+## To Come in a Future Update:
 
 ## Set Up Node Network of Sensors with Server Host
 
@@ -28,10 +235,10 @@ Future: add <matter.py>
 
 #### Part 1: Server Pi
 
-#### Part 2: Node Pi
+#### Part 2: Node Pis
 
-### Method 2: Create System from Terminal
+### Method 2: Create System from Scratch
 
 #### Part 1: Server Pi
 
-#### Part 2: Node Pi
+#### Part 2: Node Pis
