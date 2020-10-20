@@ -169,6 +169,36 @@ if __name__ == "__main__":
 
 ### Method 1: Create System with Image (Recommended Option)
 
+- Download the two image files from <LOC>
+
+- Image each onto a Pi
+
+Set Up the Node
+
+- Insert the SDS011 sensor into the node pi, connect it to a monitor, connect a keyboard and mouse, and plug in its sd card
+
+- Power it
+
+- Connect the Pi to your network
+
+- Run 'ifconfig' and make a note of the IP for later
+
+Set Up the Server
+
+- Take your server Pi, connect it to a monitor, connect a keyboard and mouse, and plug in its sd card
+
+- Connect your Pi to your wifi network
+
+- Create an SSH key pair between the two Pis. A more detailed guide on doing this can be seen [here](https://debian-administration.org/article/530/SSH_with_authentication_key_instead_of_password).
+
+  - Run 'ssh-keygen' and leave all fields default. 
+
+  - Run 'ssh-copy-id -i .ssh/id_rsa.pub pi@<YOUR NODE PI IP>'
+
+- Edit the index.py file in /var/www/cgi-bin and replace both the <NODE PI IP> references to the IP address of the Node Pi you set up.
+    
+- The website will be visible on the server pi at localhost/cgi-bin/ or on any device on your local network at <SERVER PI IP>/cgi-bin/
+
 ### Method 2: Create System from Scratch
 
 On the Sensor Pi:
@@ -181,13 +211,15 @@ On the Sensor Pi:
 
   - Here, enable SSH
   
-  - <<AND DESKTOP AUTO-LOGIN?>>
+  - And configure the Pi to boot with desktop auto-login
  
 - Run 'ifconfig' to find the IP address of this Pi (make sure to make a note of this for later!)
 
 - Run 'sudo apt install git-core python-serial python-enum'
 
-- Install the matter.py file onto /home/pi
+- Install the matter.py file onto /home/pi 
+
+  - This can be easily done with SFTP, a USB or even downloading directly from this Github over the internet
 
 - Create a data.txt file using 'sudo nano data.txt'
 
@@ -199,7 +231,11 @@ On the Sensor Pi:
   
 - Next, we are going to automate running this file on startup:
 
-  - <AUTOMATE>
+  - First, type 'sudo crontab -e' then - at the bottom of the file - add the line
+
+`@reboot cd /home/pi && python ./matter.py`
+
+Now, 'sudo halt' the Pi, and place it wherever you wish to record data (within the reach of your wifi network!) and when you next power it, it will be fully functional!
 
 On the Server Pi:
 
@@ -225,7 +261,7 @@ On the Server Pi:
   
   - Edit the new index.py file and replace both the <NODE PI IP> references to the IP address of the Node Pi you set up.
 
-Finally, reboot the node pi.
+Finally, the website will be visible on the server pi at localhost/cgi-bin/ or on any device on your local network at <SERVER PI IP>/cgi-bin/
 
 ## To Come in a Future Update:
 
