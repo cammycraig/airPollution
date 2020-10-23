@@ -4,6 +4,8 @@ Open sourced software for monitoring PM2.5 and PM10 Air Particulate
 ![Image of Sensor](https://github.com/craigrc/airPollution/blob/main/Images/Air-Sensor-Image.PNG)
 
 This project allows anyone to use an SDS011 air particulate sensor to monitor levels of PM2.5 & PM10 Air Particulate in order to view air quality in their local area.
+This will produce a site hosted on your local network where you can view and visualise levels in real-time. <A build of what this will roughly look like can be seen [here](http://craigrc.gq/pollutionWebsiteExample/index.html). Note how in this demonstration values were only recorded over one day and as such the 7 day and all time graphs cannot be made without a larger dataset.
+This project can also couple really well with a 3D printed case for the sensor if you want to attach it somewhere permanently, such as Thingiverse User [Piersoft's](https://www.thingiverse.com/piersoft/designs) "SDS011 Stevenson Case with NodeMCU".
 
 ## Read Air Particulate Values with Code
 
@@ -278,3 +280,9 @@ Finally, the website will be visible on the server pi at localhost/cgi-bin/ or o
 #### Part 1: Server Pi
 
 #### Part 2: Node Pis
+
+## FAQ
+
+- Q: My system has stopped working. Why?
+
+  - A: Since this setup uses static IP's, if your system has suddenly stopped recording values, one or more of the IP's have probably changed. Contact your network administrator for help setting up a static IP, or if you are doing this on your home system, look up how to do this on your broadband.
