@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
 ### Method 1: Create System with Image (Recommended Option)
 
-- Download the two image files from <LOC>
+- Download the two image files from [here](https://esmsorguk-my.sharepoint.com/:u:/g/personal/craigc_esms_org_uk/EadFB2ppd-ZKtop-BqeRTxsBuM8N6Id4wmTj9hj_lbj_5Q?e=5nX8uC).
 
 - Image each onto a Pi
 
