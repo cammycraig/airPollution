@@ -176,7 +176,7 @@ if __name__ == "__main__":
         d0_ts = time.mktime(day0object.timetuple())
         dt_ts = time.mktime(dateObject.timetuple())
         timeID = (int((dt_ts-d0_ts) / 900))
-        myobj = {'submitID': 'b89455a', 'timeID': str(timeID), 'pm25': str(pm2TAvg), 'pm10': str(pm10TAvg), 'datetime': dtime}
+        myobj = {'submitID': 'SUBMITID', 'timeID': str(timeID), 'pm25': str(pm2TAvg), 'pm10': str(pm10TAvg), 'datetime': dtime}
         x = requests.post(url, data = myobj)
         cmd_set_sleep(14)
         time.sleep((60*14))
@@ -212,7 +212,7 @@ Configuring the Node Pi:
   
   - Line 153 must be edited from...
  
-`myobj = {'submitID': 'submitID', 'timeID': str(timeID), 'pm25': str(pm2TAvg), 'pm10': str(pm10TAvg), 'datetime': dtime}`
+`myobj = {'submitID': 'SUBMITID', 'timeID': str(timeID), 'pm25': str(pm2TAvg), 'pm10': str(pm10TAvg), 'datetime': dtime}`
 
   - ...to reflect your submitID you noted earlier
 
